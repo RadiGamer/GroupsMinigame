@@ -1,0 +1,15 @@
+name: GroupsMinigame
+version: '1.0-SNAPSHOT'
+main: org.imradigamer.groupsMinigame.GroupsMinigame
+api-version: '1.21'
+authors: [ ImRadiGamer ]
+commands:
+  startgroups:
+    usage: /startgroups
+    description: Comienza el minijuego de grupos
+  nextround:
+    usage: /nextround
+    description: Siguiente ronda
+  restartglowing:
+    usage: /restartglowing
+    description: Quita el glowing
