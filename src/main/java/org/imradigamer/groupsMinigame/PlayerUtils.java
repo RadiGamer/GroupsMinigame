@@ -18,7 +18,6 @@ class PlayerUtils {
             team.setColor(ChatColor.RED);
         }
         team.addEntry(player.getName());
-        player.setGlowing(true);
     }
     public static void removeGlowing(Player player) {
         Scoreboard board = Bukkit.getScoreboardManager().getMainScoreboard();

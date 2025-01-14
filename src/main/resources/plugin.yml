@@ -7,9 +7,15 @@ commands:
   startgroups:
     usage: /startgroups
     description: Comienza el minijuego de grupos
+    permission: squidgame.admin
+    permission-message: No tienes permiso para usar este comando.
   nextround:
     usage: /nextround
     description: Siguiente ronda
+    permission: squidgame.admin
+    permission-message: No tienes permiso para usar este comando.
   restartglowing:
     usage: /restartglowing
     description: Quita el glowing
+    permission: squidgame.admin
+    permission-message: No tienes permiso para usar este comando.

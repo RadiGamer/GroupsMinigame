@@ -4,7 +4,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
-import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.List;
@@ -12,195 +11,138 @@ import java.util.stream.Collectors;
 
 public class GameManager {
 
-    private final JavaPlugin plugin;
+    private final GroupsMinigame plugin;
 
-    public GameManager(JavaPlugin plugin) {
+    private static final int ROOM_RADIUS = 3;
+    private static final String ROOM_TAG_PREFIX = "room_";
+    private static final String VISUAL_ROOM_TAG_PREFIX = "visual_room_";
+
+    public GameManager(GroupsMinigame plugin) {
         this.plugin = plugin;
     }
 
-    /**
-     * Starts the game with a 40-second preparation phase, followed by a 30-second grouping phase.
-     */
     public void startGroups(int groupSize) {
         Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "execute as @a at @s run playsound minecraft:juego_3_musica master @s ~ ~ ~ 100");
+        Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
+                "lights true");
 
-        // Start the 40-second preparation phase
         new BukkitRunnable() {
             @Override
             public void run() {
-                // Announce the required group size after 40 seconds
                 Bukkit.broadcastMessage(ChatColor.AQUA + "¡Forma grupos de : " + groupSize + "!");
+                playGroupSizeSound(groupSize);
 
-                switch (groupSize){
-                    case 1:
-                        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "execute as @a at @s run playsound minecraft:uno master @s ~ ~ ~ 100");
-                        break;
-                        case 2:
-                            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "execute as @a at @s run playsound minecraft:dos master @s ~ ~ ~ 100");
-                            break;
-
-                            case 3:
-                                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "execute as @a at @s run playsound minecraft:tres master @s ~ ~ ~ 100");
-                                break;
-                                case 4:
-                                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "execute as @a at @s run playsound minecraft:cuatro master @s ~ ~ ~ 100");
-                                    break;
-                                    case 5:
-                                        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "execute as @a at @s run playsound minecraft:cinco master @s ~ ~ ~ 100");
-                                        break;
-                                        case 6:
-                                            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "execute as @a at @s run playsound minecraft:seis master @s ~ ~ ~ 100");
-                                            break;
-                                            case 7:
-                                                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "execute as @a at @s run playsound minecraft:siete master @s ~ ~ ~ 100");
-                                                break;
-                                                case 8:
-                                                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "execute as @a at @s run playsound minecraft:ocho master @s ~ ~ ~ 100");
-                                                    break;
-                                                    case 9:
-                                                        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "execute as @a at @s run playsound minecraft:nueve master @s ~ ~ ~ 100");
-                                                        break;
-                                                        case 10:
-                                                            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "execute as @a at @s run playsound minecraft:diez master @s ~ ~ ~ 100");
-                                                            break;
-                                                            case 11:
-                                                                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "execute as @a at @s run playsound minecraft:once master @s ~ ~ ~ 100");
-                                                                break;
-                                                                case 12:
-                                                                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "execute as @a at @s run playsound minecraft:doce master @s ~ ~ ~ 100");
-                                                                    break;
-                }
-
-                // Update all TextDisplays with the AmountGroups tag
-                updateAmountDisplays(groupSize);
-
-                // Start the 30-second grouping phase
+                updateTextDisplays("0/" + groupSize);
+                resetTextDisplays();
                 startGroupingPhase(groupSize);
+                plugin.createSquareWallFromCorners(true);
             }
-        }.runTaskLater(plugin, 64 * 20L); // 40 seconds delay
+        }.runTaskLater(plugin, 64 * 20L);
     }
 
-    /**
-     * Updates all TextDisplays with the AmountGroups tag to display the group size.
-     */
-    private void updateAmountDisplays(int groupSize) {
+    private void playGroupSizeSound(int groupSize) {
+        String sound = switch (groupSize) {
+            case 1 -> "uno";
+            case 2 -> "dos";
+            case 3 -> "tres";
+            case 4 -> "cuatro";
+            case 5 -> "cinco";
+            case 6 -> "seis";
+            case 7 -> "siete";
+            case 8 -> "ocho";
+            case 9 -> "nueve";
+            case 10 -> "diez";
+            case 11 -> "once";
+            case 12 -> "doce";
+            default -> null;
+        };
+
+        if (sound != null) {
+            // Play sound to all players
+            Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
+                    "execute as @a at @s run playsound minecraft:" + sound + " master @s ~ ~ ~ 100");
+            Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
+                    "execute as @a at @s run playsound minecraft:agrupados master @s ~ ~ ~ 100");
+            Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
+                    "lights false");
+
+
+            // Display a title to all players
+            String title = ChatColor.YELLOW + "Grupo de tamaño: "+ ChatColor.GOLD + groupSize;
+            for (Player player : Bukkit.getOnlinePlayers()) {
+                player.sendTitle(title, " ", 10, 70, 20);
+            }
+        }
+    }
+
+
+    private void updateTextDisplays(String displayText) {
         Bukkit.getWorlds().forEach(world -> {
             for (Entity entity : world.getEntities()) {
                 if (entity instanceof org.bukkit.entity.TextDisplay textDisplay && entity.getScoreboardTags().contains("AmountGroups")) {
-                    textDisplay.setText(String.valueOf(groupSize)); // Display only the number
+                    textDisplay.setText(displayText);
                 }
             }
         });
     }
 
-
-
-    /**
-     * Starts the 30-second timer for players to form groups.
-     */
     private void startGroupingPhase(int groupSize) {
-        // Reset TimerGroups displays to 0:30
-        Bukkit.getWorlds().forEach(world -> {
-            for (Entity entity : world.getEntities()) {
-                if (entity instanceof org.bukkit.entity.TextDisplay textDisplay && entity.getScoreboardTags().contains("TimerGroups")) {
-                    textDisplay.setText("0:30"); // Reset timer to initial value with white text
-                }
-            }
-        });
-
-        // Reset AmountGroups displays to empty
-        resetAmountDisplays();
-
-        // Start the 30-second countdown
         new BukkitRunnable() {
             int timeLeft = 30;
 
             @Override
             public void run() {
-                if (timeLeft >= 0) { // Ensure the timer displays 0:00
-                    int minutes = timeLeft / 60;
-                    int seconds = timeLeft % 60;
-                    String timeDisplay = String.format("%d:%02d", minutes, seconds);
-
-                    // Update all TimerGroups displays
-                    Bukkit.getWorlds().forEach(world -> {
-                        for (Entity entity : world.getEntities()) {
-                            if (entity instanceof org.bukkit.entity.TextDisplay textDisplay && entity.getScoreboardTags().contains("TimerGroups")) {
-                                textDisplay.setText(timeDisplay); // Display timer in white
-                            }
-                        }
-                    });
-
+                if (timeLeft >= 0) {
+                    updateTimerDisplays(timeLeft);
+                    updatePlayerCounts(groupSize);
                     timeLeft--;
                 } else {
-                    // Timer has ended; cancel task and evaluate groups
+                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
+                            "stopsound @a");
+                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
+                            "lights true");
+                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
+                            "door stop false");
                     cancel();
-                    evaluateGroups(groupSize);
                 }
             }
-        }.runTaskTimer(plugin, 0L, 20L); // Runs every second for 30 seconds
+        }.runTaskTimer(plugin, 0L, 20L);
     }
 
-    private void resetAmountDisplays() {
+    private void updateTimerDisplays(int timeLeft) {
+        String timeDisplay = String.format("0:%02d", timeLeft);
         Bukkit.getWorlds().forEach(world -> {
             for (Entity entity : world.getEntities()) {
-                if (entity instanceof org.bukkit.entity.TextDisplay textDisplay && entity.getScoreboardTags().contains("AmountGroups")) {
-                    textDisplay.setText(" "); // Clear the text display
+                if (entity instanceof org.bukkit.entity.TextDisplay textDisplay && entity.getScoreboardTags().contains("TimerGroups")) {
+                    textDisplay.setText(timeDisplay);
                 }
             }
         });
     }
 
+    private void updatePlayerCounts(int groupSize) {
+        Bukkit.getWorlds().forEach(world -> {
+            for (Entity entity : world.getEntities()) {
+                if (entity.getScoreboardTags().contains(VISUAL_ROOM_TAG_PREFIX)) {
+                    List<Player> nearbyPlayers = entity.getNearbyEntities(ROOM_RADIUS, ROOM_RADIUS, ROOM_RADIUS).stream()
+                            .filter(e -> e instanceof Player)
+                            .map(e -> (Player) e)
+                            .collect(Collectors.toList());
 
-
-
-
-    /**
-     * Evaluates players' groups based on the required group size.
-     */
-    private void evaluateGroups(int groupSize) {
-        List<Player> players = Bukkit.getOnlinePlayers().stream()
-                .filter(player -> !player.isOp()) // Ignore OP players
-                .collect(Collectors.toList());
-
-        for (Player player : players) {
-            // Find nearby entities within 5 blocks
-            List<Entity> nearbyEntities = player.getNearbyEntities(5, 5, 5);
-
-            // Check if the player is near a room entity with a tag "room_<number>"
-            boolean isNearRoom = nearbyEntities.stream()
-                    .anyMatch(entity -> entity.getScoreboardTags().stream()
-                            .anyMatch(tag -> tag.matches("room_\\d+"))); // Match tags in the format "room_<number>"
-
-            if (!isNearRoom) {
-                // Player is not near any room; eliminate them
-                PlayerUtils.applyRedGlowing(player);
-                player.sendMessage(ChatColor.RED + "¡Has sido eliminado! No estás cerca de una habitación.");
-                continue;
+                    String displayText = nearbyPlayers.size() + "/" + groupSize;
+                    if (entity instanceof org.bukkit.entity.TextDisplay textDisplay) {
+                        textDisplay.setText(displayText);
+                    }
+                }
             }
-
-            // Count valid nearby players (excluding OPs)
-            long count = nearbyEntities.stream()
-                    .filter(entity -> entity instanceof Player && !((Player) entity).isOp())
-                    .count();
-
-            // Check if the player is in a valid group
-            if (count + 1 < groupSize || count + 1 > groupSize) {
-                PlayerUtils.applyRedGlowing(player);
-                player.sendMessage(ChatColor.RED + "¡Has sido eliminado! Tamaño de grupo incorrecto.");
-            } else {
-                player.sendMessage(ChatColor.GREEN + "Estás en un grupo válido.");
-            }
-        }
-
-        Bukkit.broadcastMessage(ChatColor.YELLOW + "¡La fase de formación de grupos ha terminado!");
+        });
     }
 
-
-    /**
-     * Resets glowing effects on all players.
-     */
     public void resetGlowing() {
         Bukkit.getOnlinePlayers().forEach(PlayerUtils::removeGlowing);
+    }
+
+    public void resetTextDisplays() {
+        updateTextDisplays("0/0");
     }
 }
